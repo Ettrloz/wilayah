@@ -3,163 +3,117 @@ import path from "node:path";
 
 const cwd = process.cwd();
 const file = path.resolve(cwd, "./db/wilayah.sql");
-const content = readFileSync(file, "utf-8");
+const content = readFileSync(file, "utf8");
 
-const REGEX_ID =
-  /^\(\'(\d{2})(?:\.(\d{2}))?(?:\.(\d{2}))?(?:\.(\d{4}))?\','(.*)'\)/;
+const REGEX = /^\('(\d{2})(?:\.(\d{2}))?(?:\.(\d{2}))?(?:\.(\d{4}))?','(.*)'\)/;
 
-/**
- * @typedef {Object} Province
- * @property {number} id
- * @property {string} name
- */
-
-/** @type {Province[]} */
 const provinces = [];
-
-/**
- * @typedef {Object} Regency
- * @property {number} id
- * @property {number} fullId
- * @property {string} name
- */
-
-/** @type {Regency[]} */
 const regencies = [];
-
-/**
- * @typedef {Object} District
- * @property {number} id
- * @property {number} fullId
- * @property {string} name
- */
-
-/** @type {District[]} */
 const districts = [];
-
-/**
- * @typedef {Object} Village
- * @property {number} id
- * @property {number} fullId
- * @property {string} name
- */
-
-/** @type {Village[]} */
 const villages = [];
 
 for (const line of content.split("\n")) {
-  const match = line.match(REGEX_ID);
+  const match = line.match(REGEX);
 
-  if (!match) {
-    continue;
-  }
+  if (!match) continue;
 
   const [, province, regency, district, village, name] = match;
 
-  processData({
-    province,
-    regency,
-    district,
-    village,
+  if (!regency) {
+    provinces.push({
+      id: Number(province),
+      name,
+    });
+
+    continue;
+  }
+
+  if (!district) {
+    regencies.push({
+      id: Number(regency),
+      province: Number(province),
+      name,
+    });
+
+    continue;
+  }
+
+  if (!village) {
+    districts.push({
+      id: Number(district),
+      province: Number(province),
+      regency: Number(regency),
+      name,
+    });
+
+    continue;
+  }
+
+  villages.push({
+    id: Number(village),
+    province: Number(province),
+    regency: Number(regency),
+    district: Number(district),
     name,
   });
 }
 
-const processedData = {
-  provinces,
-  regencies,
+mkdirSync(path.resolve(cwd, "./static/provinces"), {
+  recursive: true,
+});
+
+writeFileSync(
+  path.resolve(cwd, "./static/provinces/provinces.json"),
+  JSON.stringify(provinces, null, 2),
+);
+
+writeGrouped("regencies", regencies, (item) => `${item.province}`);
+
+writeGrouped(
+  "districts",
   districts,
+  (item) => `${item.province}${pad(item.regency)}`,
+);
+
+writeGrouped(
+  "villages",
   villages,
-};
+  (item) => `${item.province}${pad(item.regency)}${pad(item.district)}`,
+);
 
-for (const [type, items] of Object.entries(processedData)) {
-  const dirPath = path.resolve(cwd, `./static/${type}/`);
+/**
+ * @template T
+ * @param {string} folder
+ * @param {T[]} items
+ * @param {(item:T)=>string} getKey
+ */
+function writeGrouped(folder, items, getKey) {
+  const dir = path.resolve(cwd, "./static", folder);
 
-  mkdirSync(dirPath, {
+  mkdirSync(dir, {
     recursive: true,
   });
 
-  if (type === "provinces") {
-    writeFileSync(
-      path.join(dirPath, "./provinces.json"),
-      `${JSON.stringify(items, null, 2)}`,
-    );
+  /** @type {Record<string, T[]>} */
+  const groups = {};
 
-    continue;
+  for (const item of items) {
+    const key = getKey(item);
+
+    (groups[key] ??= []).push(item);
   }
 
-  mkdirSync(dirPath, {
-    recursive: true,
-  });
-
-  for (const data of items) {
+  for (const [key, values] of Object.entries(groups)) {
     writeFileSync(
-      path.resolve(dirPath, `./${/** @type {any} */ (data).fullId}.json`),
-      `${JSON.stringify(data, null, 2)}`,
+      path.resolve(dir, `${key}.json`),
+      JSON.stringify(values, null, 2),
     );
   }
 }
 
 /**
- * @param {string[]} args
+ * @param {number} value
  */
-function numberize(...args) {
-  return parseInt(args.join(""));
-}
-
-/**
- * @typedef {Object} Data
- * @property {string} province
- * @property {string} regency
- * @property {string} district
- * @property {string} village
- * @property {string} name
- */
-
-/**
- * @typedef {Object} ProcessedData
- * @property {string[]} provinces
- */
-
-/**
- * @param {Data} data
- */
-function processData({ province, regency, district, village, name }) {
-  switch (undefined) {
-    // @ts-ignore
-    case province:
-      break;
-    // @ts-ignore
-    case regency:
-      provinces.push({
-        id: parseInt(province),
-        name,
-      });
-
-      break;
-    // @ts-ignore
-    case district:
-      regencies.push({
-        id: parseInt(regency),
-        fullId: numberize(province, regency),
-        name,
-      });
-
-      break;
-    // @ts-ignore
-    case village:
-      districts.push({
-        id: parseInt(district),
-        fullId: numberize(province, regency, district),
-        name,
-      });
-
-      break;
-    default:
-      villages.push({
-        id: parseInt(village),
-        fullId: numberize(province, regency, district, village),
-        name,
-      });
-  }
+function pad(value) {
+  return value.toString().padStart(2, "0");
 }
