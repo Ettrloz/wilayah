@@ -58,12 +58,12 @@ for (const line of content.split("\n")) {
   });
 }
 
-mkdirSync(path.resolve(cwd, "./static/provinces"), {
+mkdirSync(path.resolve(cwd, "./static/api/provinces"), {
   recursive: true,
 });
 
 writeFileSync(
-  path.resolve(cwd, "./static/provinces/provinces.json"),
+  path.resolve(cwd, "./static/api/provinces/provinces.json"),
   JSON.stringify(provinces, null, 2),
 );
 
@@ -88,7 +88,7 @@ writeGrouped(
  * @param {(item:T)=>string} getKey
  */
 function writeGrouped(folder, items, getKey) {
-  const dir = path.resolve(cwd, "./static", folder);
+  const dir = path.resolve(cwd, "./static/api", folder);
 
   mkdirSync(dir, {
     recursive: true,
