@@ -1,0 +1,8 @@
+{
+  "extends": "./node_modules/standard-config/src/tsconfig/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true
+  }
+}

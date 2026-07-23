@@ -18,3 +18,5 @@ composer.lock
 /.Jules
 /MEMORY.md
 /GEMINI.md
+
+node_modules/

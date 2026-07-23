@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "wilayah",
+  "scripts": {
+    "generate": "node scripts/generate-data.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "standard-config": "github:Ettrloz/standard-config"
+  }
+}
